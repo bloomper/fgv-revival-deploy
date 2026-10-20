@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+umask 077
+mkdir -p secrets
+
+infra_deploy=${INFRA_DEPLOY:-../fgv-infra-deploy}
+
+generate() {
+  local name=$1 value=$2
+  if [[ -s secrets/$name ]]; then
+    echo "keep secrets/$name"
+  else
+    printf '%s' "$value" > "secrets/$name"
+    echo "created secrets/$name"
+  fi
+}
+
+# Client secrets are made by fgv-infra-deploy, which sets them in the realm
+copy_client_secret() {
+  local name=$1 client=$2
+  if [[ -s secrets/$name ]]; then
+    echo "keep secrets/$name"
+  elif [[ -s $infra_deploy/secrets/clients/$client ]]; then
+    cp "$infra_deploy/secrets/clients/$client" "secrets/$name"
+    echo "copied secrets/$name from $infra_deploy"
+  else
+    echo "missing secrets/$name: run bin/init-secrets.sh in fgv-infra-deploy first, or set INFRA_DEPLOY" >&2
+  fi
+}
+
+random() { openssl rand -base64 96 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
+
+generate MYSQL_ROOT_PASSWORD "$(random 32)"
+generate MYSQL_USER_PASSWORD "$(random 32)"
+copy_client_secret AUTH_CLIENT_SECRET fgv-revival
+copy_client_secret AUTH_SERVICE_CLIENT_SECRET fgv-revival-service
+generate WEB_AUTH_SECRET "$(random 48)"
+
+if [[ ! -s secrets/cloudflared.env ]]; then
+  printf 'TUNNEL_TOKEN=\n' > secrets/cloudflared.env
+  echo "created secrets/cloudflared.env (paste the tunnel token into it)"
+fi
+
+chmod 700 secrets
+find secrets -maxdepth 1 -type f ! -name '*.env' -exec chmod 644 {} +
+chmod 600 secrets/*.env

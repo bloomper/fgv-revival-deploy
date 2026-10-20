@@ -1,0 +1,115 @@
+name: fgv-revival-${DEPLOY_ENV:?DEPLOY_ENV must be set in .env}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  revival-mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/MYSQL_ROOT_PASSWORD
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD_FILE: /run/secrets/MYSQL_USER_PASSWORD
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - mysql_data:/var/lib/mysql
+    secrets:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_USER_PASSWORD
+
+  revival-api:
+    image: ${API_IMAGE:?API_IMAGE must be set in .env}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://revival-mysql/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-server:8080/auth/realms/${AUTH_REALM}/protocol/openid-connect/certs
+      LOGGING_FILE_PATH: /data/log_data
+      FGV_REVIVAL_BASE_URL: https://${API_HOST}
+      FGV_REVIVAL_KEYCLOAK_URL: https://${AUTH_HOST}/auth
+      FGV_REVIVAL_KEYCLOAK_REALM: ${AUTH_REALM}
+      FGV_REVIVAL_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [ "CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000;printf \"GET /actuator/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n\" >&3;grep -q \"^HTTP/1.1 200\" <&3" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    depends_on:
+      revival-mysql:
+        condition: service_healthy
+    volumes:
+      - ./data/api/log_data:/data/log_data
+    networks:
+      - default
+      - fgv
+    secrets:
+      - MYSQL_USER_PASSWORD
+      - AUTH_SERVICE_CLIENT_SECRET
+
+  revival-web:
+    image: ${WEB_IMAGE:?WEB_IMAGE must be set in .env}
+    command:
+      - sh
+      - -c
+      - |
+        export AUTH_SECRET=$$(cat /run/secrets/WEB_AUTH_SECRET)
+        export AUTH_KEYCLOAK_SECRET=$$(cat /run/secrets/AUTH_CLIENT_SECRET)
+        exec node server.js
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      BETTER_AUTH_URL: https://${WEB_HOST}
+      AUTH_KEYCLOAK_ID: fgv-revival
+      AUTH_KEYCLOAK_ISSUER: https://${AUTH_HOST}/auth/realms/${AUTH_REALM}
+      API_GRAPHQL_ENDPOINT: http://revival-api:8080/api/graphql
+      SUPPORTED_LOCALES: ${SUPPORTED_LOCALES:-sv,en}
+      DEFAULT_LOCALE: ${DEFAULT_LOCALE:-sv}
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [ "CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:3000/api/auth/ok" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      revival-api:
+        condition: service_healthy
+    secrets:
+      - WEB_AUTH_SECRET
+      - AUTH_CLIENT_SECRET
+
+volumes:
+  mysql_data:
+
+networks:
+  # Created by fgv-infra-deploy. Here revival-api reaches Keycloak as keycloak-server:8080 and
+  # Spexregister as spexregister-api:8080
+  fgv:
+    name: fgv-${DEPLOY_ENV}
+    external: true
+
+secrets:
+  MYSQL_ROOT_PASSWORD:
+    file: ./secrets/MYSQL_ROOT_PASSWORD
+  MYSQL_USER_PASSWORD:
+    file: ./secrets/MYSQL_USER_PASSWORD
+  AUTH_SERVICE_CLIENT_SECRET:
+    file: ./secrets/AUTH_SERVICE_CLIENT_SECRET
+  AUTH_CLIENT_SECRET:
+    file: ./secrets/AUTH_CLIENT_SECRET
+  WEB_AUTH_SECRET:
+    file: ./secrets/WEB_AUTH_SECRET
