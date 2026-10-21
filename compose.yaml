@@ -39,6 +39,8 @@ services:
       FGV_REVIVAL_KEYCLOAK_URL: https://${KEYCLOAK_HOST}/auth
       FGV_REVIVAL_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       FGV_REVIVAL_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
+      FGV_REVIVAL_KEYCLOAK_ADMIN_URL: http://keycloak-server:8080/auth
+      FGV_REVIVAL_IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
     restart: unless-stopped
     logging: *logging
     healthcheck:
@@ -58,6 +60,8 @@ services:
     secrets:
       - MYSQL_USER_PASSWORD
       - KEYCLOAK_SERVICE_CLIENT_SECRET
+      - KEYCLOAK_ADMIN_CLIENT_SECRET
+      - SAMPLE_USER_PASSWORD
 
   revival-web:
     image: ${WEB_IMAGE:?WEB_IMAGE must be set in .env}
@@ -116,6 +120,10 @@ secrets:
     file: ./secrets/MYSQL_USER_PASSWORD
   KEYCLOAK_SERVICE_CLIENT_SECRET:
     file: ./secrets/KEYCLOAK_SERVICE_CLIENT_SECRET
+  KEYCLOAK_ADMIN_CLIENT_SECRET:
+    file: ./secrets/KEYCLOAK_ADMIN_CLIENT_SECRET
+  SAMPLE_USER_PASSWORD:
+    file: ./secrets/SAMPLE_USER_PASSWORD
   KEYCLOAK_CLIENT_SECRET:
     file: ./secrets/KEYCLOAK_CLIENT_SECRET
   WEB_AUTH_SECRET:

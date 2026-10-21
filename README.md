@@ -86,8 +86,10 @@ sudo chown -R 1000:1000 data/api
 ```
 
 `bin/init-secrets.sh` copies the `fgv-revival` and `fgv-revival-service` client secrets from
-`../fgv-infra-deploy/secrets/clients/`. Set `INFRA_DEPLOY` to its path if it is checked out elsewhere. If
-`fgv-infra-deploy` got those secrets only now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
+`../fgv-infra-deploy/secrets/clients/`. Only when `.env` has `IMPORT_SAMPLE_DATA=true`, it also copies the `fgv-admin`
+client secret, and `SAMPLE_USER_PASSWORD` from `../spexregister-deploy/secrets/`. Set `INFRA_DEPLOY` and
+`SPEXREGISTER_DEPLOY` to their paths if they are checked out elsewhere. If `fgv-infra-deploy` got those secrets only
+now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
 | Variable                              | Purpose                                                                                           |
 |---------------------------------------|---------------------------------------------------------------------------------------------------|
@@ -95,6 +97,7 @@ sudo chown -R 1000:1000 data/api
 | `API_HOST`                            | Public address of the API, for MCP clients                                                        |
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
 | `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
+| `IMPORT_SAMPLE_DATA`                  | `true` on staging: replace all data with sample data at every start, see *First start*             |
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
@@ -108,6 +111,14 @@ docker compose ps                         # wait for "healthy"
 ```
 
 The API creates its tables on first start.
+
+With `IMPORT_SAMPLE_DATA=true` the API replaces all data with sample revivals on every start. They are built on
+Spexregister's sample data, so `spexregister-deploy` must run with `API_IMPORT_SAMPLE_DATA=true`: the spex come from
+Spexregister, and its sample user `admin@fgv.nu` becomes super admin. The import waits for Spexregister and refuses to
+run without that user. With the `fgv-admin` client it also creates users with one purpose each, such as
+`observer@fgv.nu`, `directeur@fgv.nu` and `steering-group-finance@fgv.nu` (all are listed in `fgv-revival-server`'s
+README), with the same password as Spexregister's sample users. Spexregister deletes all Keycloak users on every
+start, so restart the API after Spexregister: `docker compose restart revival-api`.
 
 For visitor statistics, run `bin/configure-umami.sh` in `fgv-infra-deploy`. It adds a website `FGV_REVIVAL_NAME` for
 `FGV_REVIVAL_WEB_HOST` and prints its ID. Put that ID in `.env` as `UMAMI_WEBSITE_ID` and run `docker compose up -d`
@@ -174,7 +185,7 @@ Then repeat *First start*. Users and their `fgv-revival` roles live in Keycloak 
 
 Staging and production use the same `compose.yaml`; they differ only in `.env`:
 
-- `.env` copied from `production.env.example`, with `DEPLOY_ENV=production`
+- `.env` copied from `production.env.example`, with `DEPLOY_ENV=production` and `IMPORT_SAMPLE_DATA=false`
 - `bin/backup-db.sh` scheduled in cron, with `backups/` copied to off-host storage
 - `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:0.1.0`, instead of
   `develop`, and `CLOUDFLARED_VERSION` pinned instead of `latest`, so that an update happens only when `.env` changes
@@ -189,8 +200,9 @@ token. Leave it out if production sits behind its own reverse proxy instead.
 | `network fgv-<DEPLOY_ENV> declared as external, but could not be found` | `fgv-infra-deploy` isn't running, or uses another `DEPLOY_ENV` |
 | Login ends with "Invalid parameter: redirect_uri" | `FGV_REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
 | Login fails with `invalid_client` in the web's log | `secrets/KEYCLOAK_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
-| Spexes show as unavailable                        | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
+| Spex show as unavailable                          | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
 | A user gets "no access"                           | They lack `fgv-revival` `USER` in Keycloak                  |
+| Sample users get "no access" on staging           | Spexregister restarted after the API and replaced the users; restart `revival-api` |
 
 ## Image tags
 
