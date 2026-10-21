@@ -15,12 +15,14 @@ Browser ──https──▶ Cloudflare ──tunnel──▶ cloudflared ─┬
 revival-web ──http──▶ revival-api:8080 ──▶ revival-mysql
                       revival-api ──http──▶ keycloak-server:8080    (fgv-infra-deploy)
                       revival-api ──http──▶ spexregister-api:8080   (spexregister-deploy)
+revival-web ──http──▶ umami-server:3000                             (fgv-infra-deploy)
 ```
 
 The web talks to the API over this project's default network. The API also joins the network `fgv-<DEPLOY_ENV>`,
 which `fgv-infra-deploy` creates. There it reaches Keycloak's signing keys as `keycloak-server:8080` and
 Spexregister's GraphQL API as `spexregister-api:8080`, with the `fgv-revival-service` client and its `REVIVAL` role.
-Browsers and the web reach Keycloak at its public `AUTH_HOST`. The API hostname is needed only for MCP clients.
+The web joins it too and forwards its visitor statistics to Umami as `umami-server:3000`.
+Browsers and the web reach Keycloak at its public `KEYCLOAK_HOST`. The API hostname is needed only for MCP clients.
 
 Every service is named after its application and role, as in `fgv-infra-deploy` and `spexregister-deploy`, so
 names on the shared network say where they come from.
@@ -87,14 +89,16 @@ sudo chown -R 1000:1000 data/api
 `../fgv-infra-deploy/secrets/clients/`. Set `INFRA_DEPLOY` to its path if it is checked out elsewhere. If
 `fgv-infra-deploy` got those secrets only now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
-| Variable                   | Purpose                                                              |
-|----------------------------|----------------------------------------------------------------------|
-| `WEB_HOST`                 | Public address of the web                                            |
-| `API_HOST`                 | Public address of the API, for MCP clients                           |
-| `AUTH_HOST`, `AUTH_REALM`  | Keycloak's public address and realm, as in `fgv-infra-deploy`        |
-| `SPEXREGISTER_GRAPHQL_URL` | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
-| `MYSQL_DATABASE`, `MYSQL_USER` | The application database                                         |
-| `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                          |
+| Variable                              | Purpose                                                                                           |
+|---------------------------------------|---------------------------------------------------------------------------------------------------|
+| `WEB_HOST`                            | Public address of the web                                                                         |
+| `API_HOST`                            | Public address of the API, for MCP clients                                                        |
+| `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
+| `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
+| `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
+| `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
+| `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
+| `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
 ## 4. First start
 
@@ -105,10 +109,15 @@ docker compose ps                         # wait for "healthy"
 
 The API creates its tables on first start.
 
+For visitor statistics, run `bin/configure-umami.sh` in `fgv-infra-deploy`. It adds a website `FGV_REVIVAL_NAME` for
+`FGV_REVIVAL_WEB_HOST` and prints its ID. Put that ID in `.env` as `UMAMI_WEBSITE_ID` and run `docker compose up -d`
+again. The web serves Umami's tracker as `/stats/script.js` and forwards events through `/stats/api/send`, so browsers
+never contact Umami directly. Umami sets no cookies, and the web drops query strings and honours *Do Not Track*.
+
 ### The first super admin
 
 Access is granted in Keycloak by role alone, never by FGV membership. In the admin console of
-`fgv-infra-deploy` (`https://AUTH_HOST/auth/admin`), open *Users*, pick the person and, under *Role mapping →
+`fgv-infra-deploy` (`https://KEYCLOAK_HOST/auth/admin`), open *Users*, pick the person and, under *Role mapping →
 Assign role → Client roles*, give them `fgv-revival` `USER` (may log in) and `SUPER_ADMIN`. They get an email that
 they now have access to Nyuppsättning, with its address. From then on super admins appoint directeurs and steering
 groups in the application; only `USER`, `SUPER_ADMIN` and `OBSERVER` are given in Keycloak.
@@ -179,8 +188,8 @@ token. Leave it out if production sits behind its own reverse proxy instead.
 |---------------------------------------------------|-------------------------------------------------------------|
 | `network fgv-<DEPLOY_ENV> declared as external, but could not be found` | `fgv-infra-deploy` isn't running, or uses another `DEPLOY_ENV` |
 | Login ends with "Invalid parameter: redirect_uri" | `FGV_REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
-| Login fails with `invalid_client` in the web's log | `secrets/AUTH_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
-| Spexes show as unavailable                        | Spexregister is down, too old for `REVIVAL`, or `secrets/AUTH_SERVICE_CLIENT_SECRET` differs from the realm |
+| Login fails with `invalid_client` in the web's log | `secrets/KEYCLOAK_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
+| Spexes show as unavailable                        | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
 | A user gets "no access"                           | They lack `fgv-revival` `USER` in Keycloak                  |
 
 ## Image tags

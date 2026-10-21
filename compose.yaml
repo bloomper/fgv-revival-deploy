@@ -33,11 +33,11 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://revival-mysql/${MYSQL_DATABASE}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-server:8080/auth/realms/${AUTH_REALM}/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-server:8080/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
       LOGGING_FILE_PATH: /data/log_data
       FGV_REVIVAL_BASE_URL: https://${API_HOST}
-      FGV_REVIVAL_KEYCLOAK_URL: https://${AUTH_HOST}/auth
-      FGV_REVIVAL_KEYCLOAK_REALM: ${AUTH_REALM}
+      FGV_REVIVAL_KEYCLOAK_URL: https://${KEYCLOAK_HOST}/auth
+      FGV_REVIVAL_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       FGV_REVIVAL_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
     restart: unless-stopped
     logging: *logging
@@ -57,7 +57,7 @@ services:
       - fgv
     secrets:
       - MYSQL_USER_PASSWORD
-      - AUTH_SERVICE_CLIENT_SECRET
+      - KEYCLOAK_SERVICE_CLIENT_SECRET
 
   revival-web:
     image: ${WEB_IMAGE:?WEB_IMAGE must be set in .env}
@@ -66,17 +66,21 @@ services:
       - -c
       - |
         export AUTH_SECRET=$$(cat /run/secrets/WEB_AUTH_SECRET)
-        export AUTH_KEYCLOAK_SECRET=$$(cat /run/secrets/AUTH_CLIENT_SECRET)
+        export KEYCLOAK_CLIENT_SECRET=$$(cat /run/secrets/KEYCLOAK_CLIENT_SECRET)
         exec node server.js
     environment:
       HOSTNAME: 0.0.0.0
       PORT: 3000
       BETTER_AUTH_URL: https://${WEB_HOST}
-      AUTH_KEYCLOAK_ID: fgv-revival
-      AUTH_KEYCLOAK_ISSUER: https://${AUTH_HOST}/auth/realms/${AUTH_REALM}
+      KEYCLOAK_CLIENT_ID: fgv-revival
+      KEYCLOAK_ISSUER: https://${KEYCLOAK_HOST}/auth/realms/${KEYCLOAK_REALM}
       API_GRAPHQL_ENDPOINT: http://revival-api:8080/api/graphql
       SUPPORTED_LOCALES: ${SUPPORTED_LOCALES:-sv,en}
       DEFAULT_LOCALE: ${DEFAULT_LOCALE:-sv}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL}
+      FEEDBACK_EMAIL: ${FEEDBACK_EMAIL}
+      UMAMI_URL: http://umami-server:3000
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     restart: unless-stopped
     logging: *logging
     healthcheck:
@@ -88,16 +92,19 @@ services:
     depends_on:
       revival-api:
         condition: service_healthy
+    networks:
+      - default
+      - fgv
     secrets:
       - WEB_AUTH_SECRET
-      - AUTH_CLIENT_SECRET
+      - KEYCLOAK_CLIENT_SECRET
 
 volumes:
   mysql_data:
 
 networks:
   # Created by fgv-infra-deploy. Here revival-api reaches Keycloak as keycloak-server:8080 and
-  # Spexregister as spexregister-api:8080
+  # Spexregister as spexregister-api:8080, and revival-web reaches Umami as umami-server:3000
   fgv:
     name: fgv-${DEPLOY_ENV}
     external: true
@@ -107,9 +114,9 @@ secrets:
     file: ./secrets/MYSQL_ROOT_PASSWORD
   MYSQL_USER_PASSWORD:
     file: ./secrets/MYSQL_USER_PASSWORD
-  AUTH_SERVICE_CLIENT_SECRET:
-    file: ./secrets/AUTH_SERVICE_CLIENT_SECRET
-  AUTH_CLIENT_SECRET:
-    file: ./secrets/AUTH_CLIENT_SECRET
+  KEYCLOAK_SERVICE_CLIENT_SECRET:
+    file: ./secrets/KEYCLOAK_SERVICE_CLIENT_SECRET
+  KEYCLOAK_CLIENT_SECRET:
+    file: ./secrets/KEYCLOAK_CLIENT_SECRET
   WEB_AUTH_SECRET:
     file: ./secrets/WEB_AUTH_SECRET

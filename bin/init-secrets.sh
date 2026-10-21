@@ -34,8 +34,8 @@ random() { openssl rand -base64 96 | tr -dc 'A-Za-z0-9' | head -c "$1"; }
 
 generate MYSQL_ROOT_PASSWORD "$(random 32)"
 generate MYSQL_USER_PASSWORD "$(random 32)"
-copy_client_secret AUTH_CLIENT_SECRET fgv-revival
-copy_client_secret AUTH_SERVICE_CLIENT_SECRET fgv-revival-service
+copy_client_secret KEYCLOAK_CLIENT_SECRET fgv-revival
+copy_client_secret KEYCLOAK_SERVICE_CLIENT_SECRET fgv-revival-service
 generate WEB_AUTH_SECRET "$(random 48)"
 
 if [[ ! -s secrets/cloudflared.env ]]; then
