@@ -34,14 +34,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://revival-mysql/${MYSQL_DATABASE}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak-server:8080/auth/realms/${KEYCLOAK_REALM}/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: https://${KEYCLOAK_HOST}/auth/realms/${KEYCLOAK_REALM}
       LOGGING_FILE_PATH: /data/log_data
-      FGV_REVIVAL_BASE_URL: https://${API_HOST}
-      FGV_REVIVAL_KEYCLOAK_URL: https://${KEYCLOAK_HOST}/auth
-      FGV_REVIVAL_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      FGV_REVIVAL_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
-      FGV_REVIVAL_KEYCLOAK_ADMIN_URL: http://keycloak-server:8080/auth
-      FGV_REVIVAL_IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
-      FGV_REVIVAL_WEB_URL: https://${WEB_HOST}
+      API_BASE_URL: https://${API_HOST}/api
+      API_WEB_URL: https://${WEB_HOST}
+      API_KEYCLOAK_URL: http://keycloak-server:8080/auth
+      API_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      API_KEYCLOAK_ADMIN_CLIENT_ID: fgv-admin
+      API_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
+      API_IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
       SPRING_MAIL_HOST: ${SMTP_HOST}
       SPRING_MAIL_PORT: ${SMTP_PORT}
       SPRING_MAIL_USERNAME: ${SMTP_USER:-}
@@ -66,11 +67,14 @@ services:
       - default
       - fgv
     secrets:
-      - MYSQL_USER_PASSWORD
-      - SMTP_PASSWORD
-      - KEYCLOAK_SERVICE_CLIENT_SECRET
-      - KEYCLOAK_ADMIN_CLIENT_SECRET
+      - source: MYSQL_USER_PASSWORD
+        target: MYSQL_API_USER_PASSWORD
+      - source: KEYCLOAK_ADMIN_CLIENT_SECRET
+        target: API_KEYCLOAK_ADMIN_CLIENT_SECRET
+      - source: KEYCLOAK_SERVICE_CLIENT_SECRET
+        target: API_KEYCLOAK_SERVICE_CLIENT_SECRET
       - SAMPLE_USER_PASSWORD
+      - SMTP_PASSWORD
 
   revival-web:
     image: ${WEB_IMAGE:?WEB_IMAGE must be set in .env}
@@ -116,9 +120,6 @@ volumes:
   mysql_data:
 
 networks:
-  # Created by fgv-infra-deploy. Here revival-api reaches Keycloak as keycloak-server:8080,
-  # Spexregister as spexregister-api:8080 and, on staging, Mailpit as mailpit:1025, and revival-web reaches Umami as
-  # umami-server:3000
   fgv:
     name: fgv-${DEPLOY_ENV}
     external: true
