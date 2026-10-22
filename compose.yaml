@@ -41,6 +41,14 @@ services:
       FGV_REVIVAL_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
       FGV_REVIVAL_KEYCLOAK_ADMIN_URL: http://keycloak-server:8080/auth
       FGV_REVIVAL_IMPORT_SAMPLE_DATA: ${IMPORT_SAMPLE_DATA:-false}
+      FGV_REVIVAL_WEB_URL: https://${WEB_HOST}
+      SPRING_MAIL_HOST: ${SMTP_HOST}
+      SPRING_MAIL_PORT: ${SMTP_PORT}
+      SPRING_MAIL_USERNAME: ${SMTP_USER:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SMTP_AUTH:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE: ${SMTP_SSL:-false}
+      MAIL_FROM: ${MAIL_FROM}
     restart: unless-stopped
     logging: *logging
     healthcheck:
@@ -59,6 +67,7 @@ services:
       - fgv
     secrets:
       - MYSQL_USER_PASSWORD
+      - SMTP_PASSWORD
       - KEYCLOAK_SERVICE_CLIENT_SECRET
       - KEYCLOAK_ADMIN_CLIENT_SECRET
       - SAMPLE_USER_PASSWORD
@@ -107,8 +116,9 @@ volumes:
   mysql_data:
 
 networks:
-  # Created by fgv-infra-deploy. Here revival-api reaches Keycloak as keycloak-server:8080 and
-  # Spexregister as spexregister-api:8080, and revival-web reaches Umami as umami-server:3000
+  # Created by fgv-infra-deploy. Here revival-api reaches Keycloak as keycloak-server:8080,
+  # Spexregister as spexregister-api:8080 and, on staging, Mailpit as mailpit:1025, and revival-web reaches Umami as
+  # umami-server:3000
   fgv:
     name: fgv-${DEPLOY_ENV}
     external: true
@@ -118,6 +128,8 @@ secrets:
     file: ./secrets/MYSQL_ROOT_PASSWORD
   MYSQL_USER_PASSWORD:
     file: ./secrets/MYSQL_USER_PASSWORD
+  SMTP_PASSWORD:
+    file: ./secrets/SMTP_PASSWORD
   KEYCLOAK_SERVICE_CLIENT_SECRET:
     file: ./secrets/KEYCLOAK_SERVICE_CLIENT_SECRET
   KEYCLOAK_ADMIN_CLIENT_SECRET:

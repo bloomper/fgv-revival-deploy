@@ -87,7 +87,8 @@ sudo chown -R 1000:1000 data/api
 
 `bin/init-secrets.sh` copies the `fgv-revival` and `fgv-revival-service` client secrets from
 `../fgv-infra-deploy/secrets/clients/`. Only when `.env` has `IMPORT_SAMPLE_DATA=true`, it also copies the `fgv-admin`
-client secret, and `SAMPLE_USER_PASSWORD` from `../spexregister-deploy/secrets/`. Set `INFRA_DEPLOY` and
+client secret, and `SAMPLE_USER_PASSWORD` from `../spexregister-deploy/secrets/`. It creates an empty
+`secrets/SMTP_PASSWORD`; write the relay's password into it in production. Set `INFRA_DEPLOY` and
 `SPEXREGISTER_DEPLOY` to their paths if they are checked out elsewhere. If `fgv-infra-deploy` got those secrets only
 now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
@@ -101,6 +102,8 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_AUTH`, `SMTP_USER`, `SMTP_STARTTLS`, `SMTP_SSL` | Mail server for meeting minutes: `mailpit`, `1025` on staging; FGV's SMTP relay in production, as for Spexregister |
+| `MAIL_FROM`                           | Sender address of the minutes                                                                     |
 | `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
 ## 4. First start
