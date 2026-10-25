@@ -230,7 +230,7 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
   relay instead of Mailpit (see *Mail*; the values in the example are placeholders)
 - no sample users: only the sample data import creates them
 - `bin/backup-db.sh` scheduled in cron, with `backups/` copied to off-host storage
-- `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:0.1.0`, instead of
+- `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:1.0.0`, instead of
   `develop`, and `CLOUDFLARED_VERSION` pinned instead of `latest`, so that an update happens only when `.env` changes
 
 Add `compose.tunnel.yaml` to `COMPOSE_FILE` if production goes through a Cloudflare Tunnel, using its own tunnel and
