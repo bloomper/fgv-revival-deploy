@@ -38,7 +38,7 @@ generate MYSQL_USER_PASSWORD "$(random 32)"
 copy_client_secret KEYCLOAK_CLIENT_SECRET fgv-revival
 copy_client_secret KEYCLOAK_SERVICE_CLIENT_SECRET fgv-revival-service
 # Only the sample data import manages Keycloak users, so the API gets fgv-admin's secret only when it imports
-if grep -qx 'IMPORT_SAMPLE_DATA=true' .env 2>/dev/null; then
+if grep -qx 'API_IMPORT_SAMPLE_DATA=true' .env 2>/dev/null; then
   copy_client_secret KEYCLOAK_ADMIN_CLIENT_SECRET fgv-admin
   if [[ -s secrets/SAMPLE_USER_PASSWORD ]]; then
     echo "keep secrets/SAMPLE_USER_PASSWORD"
