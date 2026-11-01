@@ -1,14 +1,16 @@
 # Nyuppsättning Deploy
 
-Docker Compose setup for running Nyuppsättning (server, web, MySQL) on a single host, published through a Cloudflare
-Tunnel. It follows [spexregister-deploy][1]'s layout and runs next to it. The host needs no open inbound ports and
-no reverse proxy: `cloudflared` dials out to Cloudflare, which terminates TLS and forwards each public hostname to a
-container.
+Docker Compose setup for running Nyuppsättning (server, web, MySQL) on a single host. It follows
+[spexregister-deploy][1]'s layout and runs next to it. Cloudflare is used on staging only: staging is published
+through a Cloudflare Tunnel, so that host needs no open inbound ports and no reverse proxy (`cloudflared` dials out to
+Cloudflare, which terminates TLS and forwards each public hostname to a container). Production uses no Cloudflare and
+sits behind its own reverse proxy (see *Production*).
 
 Keycloak runs from [fgv-infra-deploy][2] on the same host, and Nyuppsättning reads spex from Spexregister. Set
 up both first.
 
 ```
+Staging:
 Browser ──https──▶ Cloudflare ──tunnel──▶ cloudflared ─┬─▶ revival-web:3000   (WEB_HOST)
                                                        └─▶ revival-api:8080   (API_HOST, MCP)
 
@@ -32,7 +34,7 @@ names on the shared network say where they come from.
 | File                          | Purpose                                                                    |
 |-------------------------------|----------------------------------------------------------------------------|
 | `compose.yaml`                | `revival-mysql`, `revival-api`, `revival-web`, configured entirely from `.env` |
-| `compose.tunnel.yaml`         | `cloudflared` connector, for hosts published through a Cloudflare Tunnel   |
+| `compose.tunnel.yaml`         | `cloudflared` connector for the Cloudflare Tunnel, staging only            |
 | `staging.env.example`         | Template for `.env` on the staging host                                    |
 | `production.env.example`      | Template for `.env` on the production host                                 |
 | `bin/init-secrets.sh`         | Generates random secrets into `secrets/` and copies the client secrets from `fgv-infra-deploy` (never overwrites existing ones) |
@@ -58,9 +60,12 @@ describes. Both must be running before the first start below:
 - `spexregister-deploy` running a `spexregister-server` release that knows the `REVIVAL` role. Without it,
   Nyuppsättning shows spex as unavailable.
 
-## 2. Cloudflare
+## 2. Cloudflare (staging only)
 
-The domain's DNS must be hosted on Cloudflare. Use single-level subdomains such as
+Only staging uses Cloudflare. On production, skip this section and point `WEB_HOST` and `API_HOST` at production's
+reverse proxy (see *Production*).
+
+Staging's DNS must be hosted on Cloudflare. Use single-level subdomains such as
 `revival-staging.example.org`. A name like `api.revival.example.org` is two levels deep, and the free
 Universal SSL certificate doesn't cover it.
 
@@ -76,7 +81,7 @@ Universal SSL certificate doesn't cover it.
    | `WEB_HOST`   | `http://revival-web:3000`  |
    | `API_HOST`   | `http://revival-api:8080`  |
 
-4. On staging, restrict `WEB_HOST` to testers with Cloudflare Access, as `spexregister-deploy`'s README describes.
+4. Restrict `WEB_HOST` to testers with Cloudflare Access, as `spexregister-deploy`'s README describes.
    Leave `API_HOST` unprotected: MCP clients can't complete an Access login, and the API already requires a
    Keycloak token.
 
@@ -90,7 +95,7 @@ cd fgv-revival-deploy
 
 cp staging.env.example .env               # set the hostnames
 bin/init-secrets.sh                       # copies the client secrets from ../fgv-infra-deploy
-nano secrets/cloudflared.env              # TUNNEL_TOKEN=<token from step 2>
+nano secrets/cloudflared.env              # staging only: TUNNEL_TOKEN=<token from step 2>
 mkdir -p data/api/log_data
 sudo chown -R 1000:1000 data/api
 ```
@@ -231,10 +236,10 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 - no sample users: only the sample data import creates them
 - `bin/backup-db.sh` scheduled in cron, with `backups/` copied to off-host storage
 - `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:1.0.0`, instead of
-  `develop`, and `CLOUDFLARED_VERSION` pinned instead of `latest`, so that an update happens only when `.env` changes
-
-Add `compose.tunnel.yaml` to `COMPOSE_FILE` if production goes through a Cloudflare Tunnel, using its own tunnel and
-token. Leave it out if production sits behind its own reverse proxy instead.
+  `develop`, so that an update happens only when `.env` changes
+- no Cloudflare: `COMPOSE_FILE` leaves out `compose.tunnel.yaml`, `secrets/cloudflared.env` stays empty, and there
+  is no Cloudflare Access. Production sits behind its own reverse proxy, which terminates TLS and forwards `WEB_HOST`
+  to `revival-web:3000` and `API_HOST` to `revival-api:8080` (the table in section 2)
 
 ## Troubleshooting
 
