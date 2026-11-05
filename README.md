@@ -117,7 +117,7 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
-| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
+| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL`, `SPEXGRAM_WEB_URL`, `ARCHIVE_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
 | `SMTP_*`, `MAIL_FROM`                 | The mail server, see *Mail*                                                                       |
 | `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
