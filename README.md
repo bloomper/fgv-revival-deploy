@@ -24,7 +24,8 @@ The web talks to the API over this project's default network. The API also joins
 which `fgv-infra-deploy` creates. There it reaches Keycloak's signing keys as `keycloak-server:8080` and
 Spexregister's GraphQL API as `spexregister-api:8080`, with the `fgv-revival-service` client and its `REVIVAL` role.
 The web joins it too and forwards its visitor statistics to Umami as `umami-server:3000`.
-Browsers and the web reach Keycloak at its public `KEYCLOAK_HOST`. The API hostname is needed only for MCP clients and `/docs`.
+Browsers and the web reach Keycloak at its public `KEYCLOAK_HOST`. The API hostname publishes the whole API (GraphQL,
+MCP and `/docs`) for other applications and MCP clients.
 
 Every service is named after its application and role, as in `fgv-infra-deploy` and `spexregister-deploy`, so
 names on the shared network say where they come from.
@@ -82,8 +83,8 @@ Universal SSL certificate doesn't cover it.
    | `API_HOST`   | `http://revival-api:8080`  |
 
 4. Restrict `WEB_HOST` to testers with Cloudflare Access, as `spexregister-deploy`'s README describes.
-   Leave `API_HOST` unprotected: MCP clients can't complete an Access login, and the API already requires a
-   Keycloak token.
+   Leave `API_HOST` unprotected: other applications and MCP clients can't complete an Access login, and the API
+   already requires a Keycloak token.
 
 ## 3. Checkout and configuration
 
@@ -110,7 +111,7 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | Variable                              | Purpose                                                                                           |
 |---------------------------------------|---------------------------------------------------------------------------------------------------|
 | `WEB_HOST`                            | Public address of the web                                                                         |
-| `API_HOST`                            | Public address of the API, for MCP clients and `/docs`                                            |
+| `API_HOST`                            | Public address of the whole API, for other applications, MCP clients and `/docs`                  |
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
 | `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
 | `API_IMPORT_SAMPLE_DATA`              | `true` on staging: replace all data with sample data at every start, see *First start*             |
