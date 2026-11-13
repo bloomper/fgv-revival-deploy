@@ -114,11 +114,12 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `API_HOST`                            | Public address of the whole API, for other applications, MCP clients and `/docs`                  |
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
 | `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
+| `SPEXIPEDIA_GRAPHQL_URL`              | Spexipedia's GraphQL endpoint, `http://spexipedia-api:8080/api/graphql`: spex, tasks, and new revivals |
 | `API_IMPORT_SAMPLE_DATA`              | `true` on staging: replace all data with sample data at every start, see *First start*             |
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
-| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL`, `SPEXGRAM_WEB_URL`, `ARCHIVE_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
+| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL`, `SPEXGRAM_WEB_URL`, `SPEXIPEDIA_WEB_URL`, `ARCHIVE_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
 | `SMTP_*`, `MAIL_FROM`                 | The mail server, see *Mail*                                                                       |
 | `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
