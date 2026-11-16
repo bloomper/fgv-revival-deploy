@@ -56,8 +56,8 @@ Set up the host and Keycloak as [fgv-infra-deploy][2] describes, and Spexregiste
 describes. Both must be running before the first start below:
 
 - `fgv-infra-deploy` running, with a realm created from an `fgv-keycloak` image that has the Nyuppsättning
-  clients. Its `.env` names this deployment's `WEB_HOST` and `API_HOST` as `FGV_REVIVAL_WEB_HOST` and
-  `FGV_REVIVAL_API_HOST`, because Keycloak only sends users back to that address.
+  clients. Its `.env` names this deployment's `WEB_HOST` and `API_HOST` as `REVIVAL_WEB_HOST` and
+  `REVIVAL_API_HOST`, because Keycloak only sends users back to that address.
 - `spexregister-deploy` running a `spexregister-server` release that knows the `REVIVAL` role. Without it,
   Nyuppsättning shows spex as unavailable.
 
@@ -102,10 +102,9 @@ sudo chown -R 1000:1000 data/api
 ```
 
 `bin/init-secrets.sh` copies the `fgv-revival` and `fgv-revival-service` client secrets from
-`../fgv-infra-deploy/secrets/clients/`. Only when `.env` has `API_IMPORT_SAMPLE_DATA=true`, it also copies the `fgv-admin`
-client secret, and `SAMPLE_USER_PASSWORD` from `../spexregister-deploy/secrets/`. It creates an empty
-`secrets/SMTP_PASSWORD`; write the relay's password into it in production. Set `INFRA_DEPLOY` and
-`SPEXREGISTER_DEPLOY` to their paths if they are checked out elsewhere. If `fgv-infra-deploy` got those secrets only
+`../fgv-infra-deploy/secrets/clients/`, and the `fgv-admin` client secret, with which the API lists and tells the super
+admins. It creates an empty `secrets/SMTP_PASSWORD`; write the relay's password into it in production. It finds `fgv-infra-deploy` next to this checkout or one level
+further up; set `INFRA_DEPLOY` to its path if it is elsewhere. If `fgv-infra-deploy` got those secrets only
 now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
 | Variable                              | Purpose                                                                                           |
@@ -114,16 +113,17 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `API_HOST`                            | Public address of the whole API, for other applications, MCP clients and `/docs`                  |
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
 | `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
+| `SPEXIPEDIA_GRAPHQL_URL`              | Spexipedia's GraphQL endpoint, `http://spexipedia-api:8080/api/graphql`: spex, tasks, and new revivals |
 | `API_IMPORT_SAMPLE_DATA`              | `true` on staging: replace all data with sample data at every start, see *First start*             |
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
-| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL`, `SPEXGRAM_WEB_URL`, `ARCHIVE_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
+| `SPEXREGISTER_WEB_URL`, `SPEXIFY_WEB_URL`, `SPEXFLIX_WEB_URL`, `SPEXGRAM_WEB_URL`, `SPEXIPEDIA_WEB_URL`, `ARCHIVE_WEB_URL` | The other applications' web addresses, for the application switcher; empty leaves one out         |
 | `SMTP_*`, `MAIL_FROM`                 | The mail server, see *Mail*                                                                       |
 | `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
 For visitor statistics, run `bin/configure-umami.sh` in `fgv-infra-deploy` (see *Umami* in its README). It adds a
-website `FGV_REVIVAL_NAME` for `FGV_REVIVAL_WEB_HOST` and prints its ID; put that ID in `UMAMI_WEBSITE_ID`. The web
+website `REVIVAL_NAME` for `REVIVAL_WEB_HOST` and prints its ID; put that ID in `UMAMI_WEBSITE_ID`. The web
 serves Umami's tracker as `/stats/script.js` and forwards events through `/stats/api/send`, so browsers only talk to
 `WEB_HOST`. Leave the ID empty to send nothing.
 
@@ -139,14 +139,11 @@ docker compose ps                         # wait for "healthy"
 
 The API creates its tables on first start.
 
-With `API_IMPORT_SAMPLE_DATA=true` the API replaces all data with sample revivals on every start. They are built on
-Spexregister's sample data, so `spexregister-deploy` must run with `API_IMPORT_SAMPLE_DATA=true`: the spex come from
-Spexregister, and its sample user `admin@fgv.nu` becomes super admin. The import waits for Spexregister and refuses to
-run without that user. With the `fgv-admin` client it also creates users with one purpose each, such as
-`observer@fgv.nu`, `directeur@fgv.nu` and `steering-group-finance@fgv.nu` (all are listed under
-*Test credentials* in `fgv-revival-server`'s getting started guide), with the same password as Spexregister's
-sample users. Spexregister deletes all Keycloak users on every start, so restart the API after Spexregister:
-`docker compose restart revival-api`.
+With `API_IMPORT_SAMPLE_DATA=true` the API replaces all data with sample revivals on every start, built on Spexipedia's
+sample spex. The users are `fgv-infra-deploy`'s sample users (`bin/seed-users.sh`), with their roles there:
+`admin@fgv.nu` is super admin, and users with one purpose each, such as `observer@fgv.nu`, `directeur@fgv.nu` and
+`steering-group-finance@fgv.nu`, are listed under *Test credentials* in `fgv-revival-server`'s getting started guide.
+The import records them by their fixed ids and never changes Keycloak, so it does not depend on Spexregister's.
 
 ### The first super admin
 
@@ -235,7 +232,7 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 
 - `.env` copied from `production.env.example`: `DEPLOY_ENV=production`, `API_IMPORT_SAMPLE_DATA=false` and a real SMTP
   relay instead of Mailpit (see *Mail*; the values in the example are placeholders)
-- no sample users: only the sample data import creates them
+- no sample users: `fgv-infra-deploy`'s `bin/seed-users.sh` refuses to run on production
 - `bin/backup-db.sh` scheduled in cron, with `backups/` copied to off-host storage
 - `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:1.0.0`, instead of
   `develop`, so that an update happens only when `.env` changes
@@ -248,11 +245,11 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 | Symptom                                           | Cause                                                       |
 |---------------------------------------------------|-------------------------------------------------------------|
 | `network fgv-<DEPLOY_ENV> declared as external, but could not be found` | `fgv-infra-deploy` isn't running, or uses another `DEPLOY_ENV` |
-| Login ends with "Invalid parameter: redirect_uri" | `FGV_REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
+| Login ends with "Invalid parameter: redirect_uri" | `REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
 | Login fails with `invalid_client` in the web's log | `secrets/KEYCLOAK_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
 | Spex show as unavailable                          | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
 | A user gets "no access"                           | They lack `fgv-revival` `USER` in Keycloak                  |
-| Sample users get "no access" on staging           | Spexregister restarted after the API and replaced the users; restart `revival-api` |
+| Sample users get "no access" on staging           | Their roles were changed by hand; run `fgv-infra-deploy`'s `bin/seed-users.sh` again |
 
 ## Image tags
 

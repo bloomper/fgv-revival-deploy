@@ -20,6 +20,7 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/MYSQL_USER_PASSWORD
     restart: unless-stopped
     logging: *logging
+    security_opt: *security-opt
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent" ]
       interval: 10s
@@ -46,6 +47,7 @@ services:
       API_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       API_KEYCLOAK_ADMIN_CLIENT_ID: fgv-admin
       API_SPEXREGISTER_GRAPHQL_URL: ${SPEXREGISTER_GRAPHQL_URL:-http://spexregister-api:8080/api/graphql}
+      API_SPEXIPEDIA_GRAPHQL_URL: ${SPEXIPEDIA_GRAPHQL_URL:-http://spexipedia-api:8080/api/graphql}
       API_IMPORT_SAMPLE_DATA: ${API_IMPORT_SAMPLE_DATA:-false}
       SPRING_MAIL_HOST: ${SMTP_HOST}
       SPRING_MAIL_PORT: ${SMTP_PORT}
@@ -78,7 +80,6 @@ services:
         target: API_KEYCLOAK_ADMIN_CLIENT_SECRET
       - source: KEYCLOAK_SERVICE_CLIENT_SECRET
         target: API_KEYCLOAK_SERVICE_CLIENT_SECRET
-      - SAMPLE_USER_PASSWORD
       - SMTP_PASSWORD
 
   revival-web:
@@ -103,6 +104,7 @@ services:
       SPEXIFY_WEB_URL: ${SPEXIFY_WEB_URL:-}
       SPEXFLIX_WEB_URL: ${SPEXFLIX_WEB_URL:-}
       SPEXGRAM_WEB_URL: ${SPEXGRAM_WEB_URL:-}
+      SPEXIPEDIA_WEB_URL: ${SPEXIPEDIA_WEB_URL:-}
       ARCHIVE_WEB_URL: ${ARCHIVE_WEB_URL:-}
       SUPPORT_EMAIL: ${SUPPORT_EMAIL}
       FEEDBACK_EMAIL: ${FEEDBACK_EMAIL}
@@ -146,8 +148,6 @@ secrets:
     file: ./secrets/KEYCLOAK_SERVICE_CLIENT_SECRET
   KEYCLOAK_ADMIN_CLIENT_SECRET:
     file: ./secrets/KEYCLOAK_ADMIN_CLIENT_SECRET
-  SAMPLE_USER_PASSWORD:
-    file: ./secrets/SAMPLE_USER_PASSWORD
   KEYCLOAK_CLIENT_SECRET:
     file: ./secrets/KEYCLOAK_CLIENT_SECRET
   WEB_AUTH_SECRET:
