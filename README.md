@@ -103,8 +103,8 @@ sudo chown -R 1000:1000 data/api
 
 `bin/init-secrets.sh` copies the `fgv-revival` and `fgv-revival-service` client secrets from
 `../fgv-infra-deploy/secrets/clients/`, and the `fgv-admin` client secret, with which the API lists and tells the super
-admins. It creates an empty `secrets/SMTP_PASSWORD`; write the relay's password into it in production. Set `INFRA_DEPLOY`
-to its path if it is checked out elsewhere. If `fgv-infra-deploy` got those secrets only
+admins. It creates an empty `secrets/SMTP_PASSWORD`; write the relay's password into it in production. It finds `fgv-infra-deploy` next to this checkout or one level
+further up; set `INFRA_DEPLOY` to its path if it is elsewhere. If `fgv-infra-deploy` got those secrets only
 now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
 | Variable                              | Purpose                                                                                           |
