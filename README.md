@@ -102,10 +102,9 @@ sudo chown -R 1000:1000 data/api
 ```
 
 `bin/init-secrets.sh` copies the `fgv-revival` and `fgv-revival-service` client secrets from
-`../fgv-infra-deploy/secrets/clients/`. Only when `.env` has `API_IMPORT_SAMPLE_DATA=true`, it also copies the `fgv-admin`
-client secret, and `SAMPLE_USER_PASSWORD` from `../spexregister-deploy/secrets/`. It creates an empty
-`secrets/SMTP_PASSWORD`; write the relay's password into it in production. Set `INFRA_DEPLOY` and
-`SPEXREGISTER_DEPLOY` to their paths if they are checked out elsewhere. If `fgv-infra-deploy` got those secrets only
+`../fgv-infra-deploy/secrets/clients/`, and the `fgv-admin` client secret, with which the API lists and tells the super
+admins. It creates an empty `secrets/SMTP_PASSWORD`; write the relay's password into it in production. Set `INFRA_DEPLOY`
+to its path if it is checked out elsewhere. If `fgv-infra-deploy` got those secrets only
 now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 
 | Variable                              | Purpose                                                                                           |
@@ -140,14 +139,11 @@ docker compose ps                         # wait for "healthy"
 
 The API creates its tables on first start.
 
-With `API_IMPORT_SAMPLE_DATA=true` the API replaces all data with sample revivals on every start. They are built on
-Spexregister's sample data, so `spexregister-deploy` must run with `API_IMPORT_SAMPLE_DATA=true`: the spex come from
-Spexregister, and its sample user `admin@fgv.nu` becomes super admin. The import waits for Spexregister and refuses to
-run without that user. With the `fgv-admin` client it also creates users with one purpose each, such as
-`observer@fgv.nu`, `directeur@fgv.nu` and `steering-group-finance@fgv.nu` (all are listed under
-*Test credentials* in `fgv-revival-server`'s getting started guide), with the same password as Spexregister's
-sample users. Spexregister deletes all Keycloak users on every start, so restart the API after Spexregister:
-`docker compose restart revival-api`.
+With `API_IMPORT_SAMPLE_DATA=true` the API replaces all data with sample revivals on every start, built on Spexipedia's
+sample spex. The users are `fgv-infra-deploy`'s sample users (`bin/seed-users.sh`), with their roles there:
+`admin@fgv.nu` is super admin, and users with one purpose each, such as `observer@fgv.nu`, `directeur@fgv.nu` and
+`steering-group-finance@fgv.nu`, are listed under *Test credentials* in `fgv-revival-server`'s getting started guide.
+The import records them by their fixed ids and never changes Keycloak, so it does not depend on Spexregister's.
 
 ### The first super admin
 
@@ -236,7 +232,7 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 
 - `.env` copied from `production.env.example`: `DEPLOY_ENV=production`, `API_IMPORT_SAMPLE_DATA=false` and a real SMTP
   relay instead of Mailpit (see *Mail*; the values in the example are placeholders)
-- no sample users: only the sample data import creates them
+- no sample users: `fgv-infra-deploy`'s `bin/seed-users.sh` refuses to run on production
 - `bin/backup-db.sh` scheduled in cron, with `backups/` copied to off-host storage
 - `API_IMAGE` and `WEB_IMAGE` pinned to release versions, e.g. `bloomper/fgv-revival-server:1.0.0`, instead of
   `develop`, so that an update happens only when `.env` changes
@@ -253,7 +249,7 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 | Login fails with `invalid_client` in the web's log | `secrets/KEYCLOAK_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
 | Spex show as unavailable                          | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
 | A user gets "no access"                           | They lack `fgv-revival` `USER` in Keycloak                  |
-| Sample users get "no access" on staging           | Spexregister restarted after the API and replaced the users; restart `revival-api` |
+| Sample users get "no access" on staging           | Their roles were changed by hand; run `fgv-infra-deploy`'s `bin/seed-users.sh` again |
 
 ## Image tags
 
