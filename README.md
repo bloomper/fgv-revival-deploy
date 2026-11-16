@@ -56,8 +56,8 @@ Set up the host and Keycloak as [fgv-infra-deploy][2] describes, and Spexregiste
 describes. Both must be running before the first start below:
 
 - `fgv-infra-deploy` running, with a realm created from an `fgv-keycloak` image that has the Nyuppsättning
-  clients. Its `.env` names this deployment's `WEB_HOST` and `API_HOST` as `FGV_REVIVAL_WEB_HOST` and
-  `FGV_REVIVAL_API_HOST`, because Keycloak only sends users back to that address.
+  clients. Its `.env` names this deployment's `WEB_HOST` and `API_HOST` as `REVIVAL_WEB_HOST` and
+  `REVIVAL_API_HOST`, because Keycloak only sends users back to that address.
 - `spexregister-deploy` running a `spexregister-server` release that knows the `REVIVAL` role. Without it,
   Nyuppsättning shows spex as unavailable.
 
@@ -123,7 +123,7 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `UMAMI_WEBSITE_ID`                    | Umami website for `WEB_HOST`; without it the web sends no statistics                              |
 
 For visitor statistics, run `bin/configure-umami.sh` in `fgv-infra-deploy` (see *Umami* in its README). It adds a
-website `FGV_REVIVAL_NAME` for `FGV_REVIVAL_WEB_HOST` and prints its ID; put that ID in `UMAMI_WEBSITE_ID`. The web
+website `REVIVAL_NAME` for `REVIVAL_WEB_HOST` and prints its ID; put that ID in `UMAMI_WEBSITE_ID`. The web
 serves Umami's tracker as `/stats/script.js` and forwards events through `/stats/api/send`, so browsers only talk to
 `WEB_HOST`. Leave the ID empty to send nothing.
 
@@ -245,7 +245,7 @@ Staging and production use the same `compose.yaml`; they differ only in `.env`:
 | Symptom                                           | Cause                                                       |
 |---------------------------------------------------|-------------------------------------------------------------|
 | `network fgv-<DEPLOY_ENV> declared as external, but could not be found` | `fgv-infra-deploy` isn't running, or uses another `DEPLOY_ENV` |
-| Login ends with "Invalid parameter: redirect_uri" | `FGV_REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
+| Login ends with "Invalid parameter: redirect_uri" | `REVIVAL_WEB_HOST` in `fgv-infra-deploy` doesn't match `WEB_HOST`, or the realm lacks the clients |
 | Login fails with `invalid_client` in the web's log | `secrets/KEYCLOAK_CLIENT_SECRET` differs from the realm; run `fgv-infra-deploy/bin/configure-keycloak.sh` |
 | Spex show as unavailable                          | Spexregister is down, too old for `REVIVAL`, or `secrets/KEYCLOAK_SERVICE_CLIENT_SECRET` differs from the realm |
 | A user gets "no access"                           | They lack `fgv-revival` `USER` in Keycloak                  |
