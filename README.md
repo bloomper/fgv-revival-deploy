@@ -114,6 +114,7 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `KEYCLOAK_HOST`, `KEYCLOAK_REALM`     | Keycloak's public address and realm, as in `fgv-infra-deploy`                                     |
 | `SPEXREGISTER_GRAPHQL_URL`            | Spexregister's GraphQL endpoint, `http://spexregister-api:8080/api/graphql` on the shared network |
 | `SPEXIPEDIA_GRAPHQL_URL`              | Spexipedia's GraphQL endpoint, `http://spexipedia-api:8080/api/graphql`: spex, tasks, and new revivals |
+| `MEDLEMSKAP_GRAPHQL_URL`              | Medlemskap's GraphQL endpoint, `http://membership-api:8080/api/graphql`: the year's fees and the payment request for the memberships a revival pays. `fgv-revival-service` needs the `REVIVAL` role on `fgv-membership` (in `fgv-keycloak`'s realm), and Medlemskap must accept it in `API_AUTHORIZED_PARTIES` (the default does) |
 | `API_IMPORT_SAMPLE_DATA`              | `true` on staging: replace all data with sample data at every start, see *First start*             |
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
