@@ -116,6 +116,7 @@ now, run its `bin/configure-keycloak.sh` too, so that the realm has them.
 | `SPEXIPEDIA_GRAPHQL_URL`              | Spexipedia's GraphQL endpoint, `http://spexipedia-api:8080/api/graphql`: spex, tasks, and new revivals |
 | `MEDLEMSKAP_GRAPHQL_URL`              | Medlemskap's GraphQL endpoint, `http://membership-api:8080/api/graphql`: the year's fees and the payment request for the memberships a revival pays. `fgv-revival-service` needs the `REVIVAL` role on `fgv-membership` (in `fgv-keycloak`'s realm), and Medlemskap must accept it in `API_AUTHORIZED_PARTIES` (the default does) |
 | `API_IMPORT_SAMPLE_DATA`              | `true` on staging: replace all data with sample data at every start, see *First start*             |
+| `API_SECURITY_AUTHORIZED_PARTIES`     | The clients whose tokens the API accepts, `fgv-revival` by default. `fgv-revival,fgv-revival-migration` only while the guide is migrated, see *The guide* |
 | `MYSQL_DATABASE`, `MYSQL_USER`        | The application database                                                                          |
 | `SUPPORTED_LOCALES`, `DEFAULT_LOCALE` | `sv,en` and `sv`                                                                                  |
 | `SUPPORT_EMAIL`, `FEEDBACK_EMAIL`     | Addresses shown on the Support and About pages                                                    |
@@ -153,6 +154,19 @@ Access is granted in Keycloak by role alone, never by FGV membership. In the adm
 Assign role → Client roles*, give them `fgv-revival` `USER` (may log in) and `SUPER_ADMIN`. They get an email that
 they now have access to Nyuppsättning, with its address. From then on super admins appoint directeurs and steering
 groups in the application; only `USER`, `SUPER_ADMIN` and `OBSERVER` are given in Keycloak.
+
+### The guide
+
+Production starts without a guide; sample data is never imported there. The guide, a Word document, is migrated once
+into the first draft by [fgv-revival-migration][guide-migration], as the service account `fgv-revival-migration`
+(`USER` and `SUPER_ADMIN` on `fgv-revival`):
+
+1. Set `API_SECURITY_AUTHORIZED_PARTIES=fgv-revival,fgv-revival-migration` in `.env` and `docker compose up -d`.
+2. Run the migration (its README): `propose`, correct the proposal, `try`, `apply`.
+3. Remove the setting again, `docker compose up -d`, and disable the client in Keycloak.
+4. A super admin reads the draft under *Guide*, adds the English text, and publishes it: v1, the content of v5.
+
+[guide-migration]: https://github.com/bloomper/fgv-revival-migration
 
 ## Updating
 
