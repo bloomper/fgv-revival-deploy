@@ -52,6 +52,8 @@ services:
       API_SPEXIPEDIA_GRAPHQL_URL: ${SPEXIPEDIA_GRAPHQL_URL:-http://spexipedia-api:8080/api/graphql}
       API_MEDLEMSKAP_GRAPHQL_URL: ${MEDLEMSKAP_GRAPHQL_URL:-http://membership-api:8080/api/graphql}
       API_IMPORT_SAMPLE_DATA: ${API_IMPORT_SAMPLE_DATA:-false}
+      # The clients whose tokens the API accepts; add fgv-revival-migration while the guide is migrated
+      API_SECURITY_AUTHORIZED_PARTIES: ${API_SECURITY_AUTHORIZED_PARTIES:-fgv-revival}
       SPRING_MAIL_HOST: ${SMTP_HOST}
       SPRING_MAIL_PORT: ${SMTP_PORT}
       SPRING_MAIL_USERNAME: ${SMTP_USER:-}
